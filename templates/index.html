@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Upload and Detection</title>
+    <style>
+        img {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Video for Detection</h1>
+
+    <!-- Form for uploading video and animal name -->
+    <form id="videoForm" enctype="multipart/form-data">
+        <label for="animalName">Animal Name:</label>
+        <input type="text" id="animalName" name="animal_name" required>
+        <br><br>
+        <input type="file" id="videoInput" name="file" accept="video/mp4" required>
+        <button type="submit">Upload Video</button>
+    </form>
+
+    <div id="videoContainer">
+        <!-- Video feed will be displayed here as an image -->
+        <img id="videoFeed" />
+    </div>
+
+    <div id="detectionResults">
+        <!-- Text summary of detection will be shown here -->
+    </div>
+
+    <!-- Include Socket.IO for real-time communication -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        // Connect to the backend WebSocket
+        const socket = io('https://flaskai-backend.onrender.com');  // Adjust the backend IP and port if needed
+
+        // Handle detection updates from backend
+        socket.on('detection_update', (data) => {
+            const detectionResultsDiv = document.getElementById('detectionResults');
+            detectionResultsDiv.innerHTML = `<p><strong>Detection Summary:</strong><br>${data.text.join('<br>')}</p>`;
+        });
+
+        // Handle form submission and send video to backend
+        document.getElementById('videoForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const videoFile = document.getElementById('videoInput').files[0];
+            const animalName = document.getElementById('animalName').value;  // Get animal name from the input field
+
+            formData.append('file', videoFile);
+            formData.append('animal_name', animalName);  // Append animal name to the form data
+
+            // Send video to backend using fetch
+            fetch('https://flaskai-backend.onrender.com/video_feed', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Video processing started");
+                } else {
+                    console.error('Error uploading video:', response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading video:', error);
+            });
+        });
+
+        // Real-time video stream handling via socket
+        const videoFeed = document.getElementById('videoFeed');
+
+        socket.on('frame_update', (frameData) => {
+            const img = new Image();
+            img.src = 'data:image/jpeg;base64,' + frameData;
+            img.onload = () => {
+                videoFeed.src = img.src;
+            };
+        });
+    </script>
+</body>
+</html>

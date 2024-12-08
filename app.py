@@ -59,7 +59,6 @@ def video_feed():
 
         model = animal_model()
 
-
         # Start a new thread to process the video in the background
         threading.Thread(target=model.process_video, args=(file_path,animal_name)).start()
 
