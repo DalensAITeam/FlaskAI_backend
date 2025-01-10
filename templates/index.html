@@ -37,7 +37,7 @@
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         // Connect to the backend WebSocket
-        const socket = io('http://127.0.0.1:7017/');  // Adjust the backend IP and port if needed
+        const socket = io('13.61.146.102:7017/');  // Adjust the backend IP and port if needed
 
         // Handle detection updates from backend
         socket.on('detection_update', (data) => {
@@ -57,7 +57,7 @@
             formData.append('animal_name', animalName);  // Append animal name to the form data
 
             // Send video to backend using fetch
-            fetch('http://127.0.0.1:7017/video_feed', {
+            fetch('13.61.146.102:7017/video_feed', {
                 method: 'POST',
                 body: formData,
             })
