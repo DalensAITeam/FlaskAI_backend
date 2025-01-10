@@ -7,11 +7,13 @@ import supervision as sv
 from numpy import ndarray
 from supervision import Detections
 from ultralytics import YOLO
+import os
 
 
 # Path to the YOLOv8 weights file
-
+alart = None
 class Animal:
+    
     """
     Base class for animal detection using Ultralytics.
     """
@@ -30,33 +32,33 @@ class Animal:
             cv2.VideoCapture: Video capture object.
 
         """
+        self.ip_address = ip_address
 
         capture = cv2.VideoCapture(ip_address)
         frame_width, frame_height = [1280, 720]
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
+
         return capture
 
-    def setup_model(self, WEIGHTS_PATH: str = "yolov8n.pt") -> YOLO:
-
-        """
-
-        :param WEIGHTS_PATH: The path to trained Yolov8 path
-        :return:
-        """
-
+    def setup_model(self, WEIGHTS_PATH: str = "best.pt") -> YOLO:
+       
+        # :param WEIGHTS_PATH: The path to trained Yolov8 path
+        # :return:
+        
+        
         return YOLO(WEIGHTS_PATH)
-
+        
     def threat_alarm(self, detected_animal_name: str, main_animal: str) -> str:
-        """
+        
 
-        :param detected_animal_name: The detected animal (Threat) found on the camera
-        :param main_animal: The right animal which we want to detect i.e. The main animal in the farm
-        :return: Threat detected or not detected with the name of the threat if  is detected
-        """
-        print("detected_animal_name",detected_animal_name)
-        print("main_animal",main_animal)
+        # :param detected_animal_name: The detected animal (Threat) found on the camera
+        # :param main_animal: The right animal which we want to detect i.e. The main animal in the farm
+        # :return: Threat detected or not detected with the name of the threat if  is detected
+       
+        # print("detected_animal_name",detected_animal_name)
+        # print("main_animal",main_animal)
         if  main_animal != detected_animal_name:
 
             return f"Threat '{detected_animal_name}' Detected !!!!"
@@ -67,17 +69,17 @@ class Animal:
     def process_frame(
             self, frame: np.ndarray, model, main_animal: str) -> tuple[ndarray, Detections, str]:
 
-        """
+        
 
-        :param frame: The video frame from the camera
-        :param model: The Yolov8 model
-        :param main_animal:The right animal which we want to detect i.e. The main animal in the farm
+        # :param frame: The video frame from the camera
+        # :param model: The Yolov8 model
+        # :param main_animal:The right animal which we want to detect i.e. The main animal in the farm
 
-        return:
-            frame: The result frame of the detected animal
-            detections: The detections from the frame
-            alart: Tells if a threat has been detected, tells the threat name that was detected
-        """
+        # return:
+        #     frame: The result frame of the detected animal
+        #     detections: The detections from the frame
+        #     alart: Tells if a threat has been detected, tells the threat name that was detected
+        # """
 
 
         # Run YOLOv8 on the frame
@@ -109,7 +111,6 @@ class Animal:
         return frame, detections, alart
 
 
-
     def run(self, ip_address, main_animal: str) -> tuple[ndarray, int, str]:
         """
         Run the animal detection application.
@@ -120,16 +121,15 @@ class Animal:
         Returns:
             None
         """
-        print("in")
 
         capture = self.setup_capture(ip_address)
         model = self.setup_model()
-        print("in")
-
+       
         while True:
             ret, frame = capture.read()
             if not ret:
                 break
+
 
             frame, detections, threat_state = self.process_frame(frame, model, main_animal)
             animal_number = len(detections)
@@ -141,10 +141,18 @@ class Animal:
             # if cv2.waitKey(30) == 27:
             #     break
 
+    def get_capture_properties(self,capture):
+        frame_width, frame_height = [640,480]
+        fps = capture.get(cv2.CAP_PROP_FPS)
+
+        return frame_height,frame_width,fps
 
 
 if __name__ == "__main__":
 
     d = Animal()
-    d.run("vid.mp4","bird")
+    generator = d.run(0,"Chicken")
+    for value in generator:
+        print(len(value))
+        # print(value)
 

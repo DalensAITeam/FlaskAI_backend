@@ -1,11 +1,12 @@
-from flask import Flask, Response, request, jsonify
-from flask_socketio import SocketIO, emit
+from django.shortcuts import render
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
 import cv2
 from ultralytics import YOLO
 import base64
 import threading
 from model import Animal
-
+# from main import animal_model
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -15,7 +16,7 @@ def allowed_video_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
 
 # Load YOLOv8 model
-model = YOLO("yolov8n.pt")
+# model = YOLO("yolov8n.pt")
 
 
 class animal_model:
@@ -44,8 +45,11 @@ class animal_model:
                 # Sleep briefly to simulate real-time streaming
                 socketio.sleep(0.1)
                 # print(threat_state)
+
+
 @app.route('/')
 def index():
+
     return {"Response":"welcome"}
 
 # Route to handle video upload and processing
@@ -61,8 +65,11 @@ def video_feed():
 
         # Start a new thread to process the video in the background
         threading.Thread(target=model.process_video, args=(file_path,animal_name)).start()
+        # print(output)
 
         return jsonify({"response": "Video processing started"}), 200
+
+
 
 
 if __name__ == '__main__':
