@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 import cv2
