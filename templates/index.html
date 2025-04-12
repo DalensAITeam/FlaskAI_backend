@@ -3,85 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Upload and Detection</title>
+    <title>Animal Monitoring System</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .video-section {
+            flex: 2;
+        }
+        .stats-section {
+            flex: 1;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+        }
         img {
             width: 100%;
             max-width: 600px;
             margin-top: 20px;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <h1>Upload Video for Detection</h1>
+    <h1>Animal Monitoring System</h1>
 
-    <!-- Form for uploading video and animal name -->
-    <form id="videoForm" enctype="multipart/form-data">
-        <label for="animalName">Animal Name:</label>
-        <input type="text" id="animalName" name="animal_name" required>
-        <br><br>
-        <input type="file" id="videoInput" name="file" accept="video/mp4" required>
-        <button type="submit">Upload Video</button>
+    <!-- Form for IP address and animal name -->
+    <form id="monitoringForm">
+        <div class="form-group">
+            <label for="ipAddress">IP Address:</label>
+            <input type="text" id="ipAddress" name="ip_address" placeholder="e.g., 192.168.0.94:4747" required>
+        </div>
+        <div class="form-group">
+            <label for="animalName">Animal Name:</label>
+            <input type="text" id="animalName" name="animal_name" placeholder="e.g., chicken" required>
+        </div>
+        <button type="submit">Start Monitoring</button>
     </form>
 
-    <div id="videoContainer">
-        <!-- Video feed will be displayed here as an image -->
-        <img id="videoFeed" />
-    </div>
-
-    <div id="detectionResults">
-        <!-- Text summary of detection will be shown here -->
+    <div class="container">
+        <div class="video-section">
+            <h2>Live Feed</h2>
+            <img id="videoFeed" alt="Video Feed" />
+        </div>
+        <div class="stats-section">
+            <h2>Animal Statistics</h2>
+            <div id="detectionResults">
+                <p>Threat State: <span id="threatState">-</span></p>
+                <p>Animal Number: <span id="animalNumber">-</span></p>
+                <p>Animal Attacks: <span id="animalAttacks">-</span></p>
+                <p>Healthy Animals: <span id="healthyAnimals">-</span></p>
+                <p>Feeding Animals: <span id="feedingAnimals">-</span></p>
+            </div>
+        </div>
     </div>
 
     <!-- Include Socket.IO for real-time communication -->
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         // Connect to the backend WebSocket
-        const socket = io('13.61.146.102:7017/');  // Adjust the backend IP and port if needed
+        const socket = io('http://127.0.0.1:7017');
 
         // Handle detection updates from backend
         socket.on('detection_update', (data) => {
-            const detectionResultsDiv = document.getElementById('detectionResults');
-            detectionResultsDiv.innerHTML = `<p><strong>Detection Summary:</strong><br>${data.text.join('<br>')}</p>`;
+            const text = data.text[0];
+            // Parse the text to extract values
+            const matches = text.match(/Animal_Threat_State: (.*?)\s*,\s*Animal_number: (\d+)\s*,\s*Amount_of_animal_attack\s*(\d+)\s*,\s*Amount_of_healthy_animal,(\d+),\s*Amount_of_feeding_animal(\d+)/);
+            
+            if (matches) {
+                document.getElementById('threatState').textContent = matches[1];
+                document.getElementById('animalNumber').textContent = matches[2];
+                document.getElementById('animalAttacks').textContent = matches[3];
+                document.getElementById('healthyAnimals').textContent = matches[4];
+                document.getElementById('feedingAnimals').textContent = matches[5];
+            }
         });
 
-        // Handle form submission and send video to backend
-        document.getElementById('videoForm').addEventListener('submit', (event) => {
+        // Handle form submission
+        document.getElementById('monitoringForm').addEventListener('submit', (event) => {
             event.preventDefault();
 
             const formData = new FormData();
-            const videoFile = document.getElementById('videoInput').files[0];
-            const animalName = document.getElementById('animalName').value;  // Get animal name from the input field
+            const ipAddress = document.getElementById('ipAddress').value;
+            const animalName = document.getElementById('animalName').value;
 
-            formData.append('file', videoFile);
-            formData.append('animal_name', animalName);  // Append animal name to the form data
+            formData.append('ip_address', ipAddress);
+            formData.append('animal_name', animalName);
 
-            // Send video to backend using fetch
-            fetch('13.61.146.102:7017/video_feed', {
+            // Send data to backend
+            fetch('http://127.0.0.1:7017/video_feed', {
                 method: 'POST',
                 body: formData,
             })
             .then(response => {
                 if (response.ok) {
-                    console.log("Video processing started");
+                    console.log("Monitoring started");
                 } else {
-                    console.error('Error uploading video:', response.statusText);
+                    console.error('Error starting monitoring:', response.statusText);
                 }
             })
             .catch(error => {
-                console.error('Error uploading video:', error);
+                console.error('Error:', error);
             });
         });
 
-        // Real-time video stream handling via socket
-        const videoFeed = document.getElementById('videoFeed');
-
+        // Handle video feed updates
         socket.on('frame_update', (frameData) => {
-            const img = new Image();
-            img.src = 'data:image/jpeg;base64,' + frameData;
-            img.onload = () => {
-                videoFeed.src = img.src;
-            };
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.src = 'data:image/jpeg;base64,' + frameData;
         });
     </script>
 </body>

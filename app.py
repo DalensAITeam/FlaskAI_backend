@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 import cv2
-from ultralytics import YOLO
+# from ultralytics import YOLO
 import base64
 import threading
-from model import Animal
+from FlaskAI_backend.test import Animal
 # from main import animal_model
 
 app = Flask(__name__)
@@ -26,11 +26,16 @@ class animal_model:
         pass
 
 
-    def process_video( self,file_path,animal_name):
+    def process_video( self,ip_adress,animal_name):
          animal = Animal()
-         for frame, threat_state, animal_number in animal.run( file_path,animal_name):
+         for frame, amount_of_animal_attack, animal_number, amount_of_healthy_animal, amount_of_feeding_animal,threat_state  in animal.run( ip_adress,animal_name):
 
-                detection_text =  [f"Animal_Threat_State: {threat_state}  , Animal_number: {animal_number}"]
+
+                detection_text =  [f"Animal_Threat_State: {threat_state}  , Animal_number: {animal_number} ,Amount_of_animal_attack  {amount_of_animal_attack} ,"
+                                   f"Amount_of_healthy_animal,{amount_of_healthy_animal}, Amount_of_feeding_animal{amount_of_feeding_animal}"
+      ]
+
+
                 socketio.emit('detection_update', {'text': detection_text})  # Send detection data to frontend
 
                 # Convert frame to base64
@@ -55,20 +60,16 @@ def index():
 @app.route('/video_feed', methods=["POST"])
 def video_feed():
     if request.method == 'POST':
-        input_video = request.files['file']
-        file_path = './videos/' + input_video.filename
-        animal_name = request.form.get('animal_name')
-        input_video.save(file_path)
 
+        animal_name = request.form.get('animal_name')
+        ip_address = request.form.get('ip_address')
         model = animal_model()
 
         # Start a new thread to process the video in the background
-        threading.Thread(target=model.process_video, args=(file_path,animal_name)).start()
+        threading.Thread(target=model.process_video, args=(ip_address,animal_name)).start()
         # print(output)
 
         return jsonify({"response": "Video processing started"}), 200
-
-
 
 
 if __name__ == '__main__':
